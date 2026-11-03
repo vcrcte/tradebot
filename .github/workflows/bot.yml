@@ -1,0 +1,61 @@
+name: Bot de trading (simulation)
+
+on:
+  schedule:
+    - cron: "17 * * * *"     # toutes les heures (GitHub peut décaler de quelques minutes)
+  workflow_dispatch: {}       # bouton « Run workflow » pour un passage manuel
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: tradebot
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Passage du bot (simulation uniquement)
+        env:
+          DASHBOARD_OUT: docs/index.html
+          ALERTS_FILE: alerts.txt
+        run: |
+          grep -q '^mode: paper' config.yaml || { echo "Refus : ce workflow ne tourne qu'en simulation."; exit 1; }
+          python bot.py
+
+      - name: Publier les alertes (achat, vente, arrêt, erreur)
+        if: hashFiles('alerts.txt') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          num=$(gh issue list --label alertes --state open --json number -q '.[0].number')
+          if [ -z "$num" ]; then
+            gh label create alertes --color 2a78d6 --force
+            num=$(gh issue create --title "Alertes du bot de trading" --label alertes \
+              --body "Chaque achat, vente, arrêt ou erreur du bot (simulation) est ajouté ici en commentaire. Abonne-toi à cette issue pour recevoir les notifications." | grep -o '[0-9]*$')
+          fi
+          { echo "**$(TZ=Europe/Paris date '+%d/%m %H:%M')** (simulation, argent fictif)"; echo; sed 's/^/- /' alerts.txt; } > body.md
+          gh issue comment "$num" --body-file body.md
+
+      - name: Enregistrer l'état et le tableau de bord
+        run: |
+          git config user.name "tradebot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state_paper.json docs/index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Passage du bot $(date -u '+%Y-%m-%d %H:%M') UTC"
+          for i in 1 2 3; do git pull --rebase -q && git push -q && exit 0; sleep 5; done
+          exit 1

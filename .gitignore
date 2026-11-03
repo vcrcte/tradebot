@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.tmp
+state_live.json
+alerts.txt
+body.md
+backtest_equity.png
+dashboard.html
+.venv/

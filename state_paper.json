@@ -1,0 +1,29 @@
+{
+  "cash": 1000,
+  "initial_equity": 1000,
+  "peak_equity": 1000,
+  "positions": {},
+  "trades": [],
+  "last_ts": {
+    "BTC/EUR": 1793743200000,
+    "ETH/EUR": 1793743200000,
+    "SOL/EUR": 1793743200000
+  },
+  "day": "2026-11-03",
+  "day_start_equity": 1000,
+  "halted": false,
+  "equity_history": [
+    [
+      1793747259896,
+      1000
+    ],
+    [
+      1793748015439,
+      1000
+    ],
+    [
+      1793748418928,
+      1000
+    ]
+  ]
+}

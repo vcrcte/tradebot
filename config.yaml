@@ -1,0 +1,36 @@
+# ── Mode ────────────────────────────────────────────────────────────────
+# paper = simulation sur les vrais prix, aucun ordre envoyé (par défaut)
+# live  = ordres réels. Exige aussi le flag --live en ligne de commande.
+mode: paper
+
+exchange: kraken          # agréé MiCA (Payward Europe). Alternatives ccxt : coinbase, bitstamp, bitvavo
+quote: EUR
+symbols: [BTC/EUR, ETH/EUR, SOL/EUR]
+timeframe: 1h             # le bot ne décide qu'à la clôture de chaque bougie
+
+paper:
+  initial_cash: 1000      # capital fictif en EUR
+  fee: 0.004              # frais taker Kraken Pro petit volume (0,40 %) — vérifie ton palier
+  slippage: 0.0005
+
+live:
+  capital_cap: 200        # le bot n'utilisera jamais plus que ce montant en EUR, même si le compte en a plus
+
+strategy:
+  ema_fast: 20
+  ema_slow: 50
+  ema_trend: 200
+  rsi_max: 70
+  atr_mult: 3             # distance du stop suiveur en ATR
+
+risk:
+  risk_default: 0.01      # 1 % du capital risqué par trade tant que l'historique est court
+  risk_min: 0.0025
+  risk_max: 0.02          # plafond du demi-Kelly. Le post viral dit 6 % : c'est très agressif, déconseillé
+  kelly_min_trades: 20
+  max_alloc: 0.30         # une position ne dépasse jamais 30 % du capital
+  max_positions: 3
+  max_daily_loss: 0.05    # -5 % dans la journée → plus de nouvelles entrées jusqu'au lendemain
+  max_drawdown: 0.25      # -25 % depuis le plus haut → arrêt total du bot
+
+state_file: state.json

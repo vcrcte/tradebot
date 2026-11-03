@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bot de trading · Suivi</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f4f2; --surface-1: #fcfcfb; --border: #e3e2de;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #7b7a75;
+    --grid: #ecebe7; --series-1: #2a78d6; --baseline: #a9a8a2;
+    --good: #0ca30c; --warning: #fab219; --critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #111110; --surface-1: #1a1a19; --border: #2c2c2a;
+      --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e86;
+      --grid: #262624; --series-1: #3987e5; --baseline: #5d5c57;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text-primary);
+         font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+         font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 24px 40px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  h1 { font-size: 22px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+  .sub { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border);
+           background: var(--surface-1); border-radius: 999px; padding: 5px 11px; font-size: 13px; color: var(--text-secondary); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+  .dot.good { background: var(--good); } .dot.warning { background: var(--warning); } .dot.critical { background: var(--critical); }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+  .kpi .label { color: var(--text-secondary); font-size: 12.5px; }
+  .kpi .value { font-size: 26px; font-weight: 650; margin-top: 4px; letter-spacing: -0.02em; }
+  .kpi .note { color: var(--text-muted); font-size: 12.5px; margin-top: 2px; }
+  .delta { display: inline-flex; align-items: center; gap: 4px; }
+  .delta i { font-style: normal; font-size: 10px; }
+  .delta.up i { color: var(--good); } .delta.down i { color: var(--critical); }
+  h2 { font-size: 15px; font-weight: 620; margin: 0 0 2px; }
+  .card-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; gap: 12px; flex-wrap: wrap; }
+  .muted { color: var(--text-muted); font-size: 12.5px; }
+  .chart { position: relative; height: 260px; }
+  .chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .tip { position: absolute; pointer-events: none; background: var(--surface-1); border: 1px solid var(--border);
+         border-radius: 8px; padding: 6px 9px; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0,0,0,.12); display: none; white-space: nowrap; }
+  .tip b { font-weight: 650; }
+  .empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); text-align: center; padding: 20px; }
+  .markets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0; }
+  .mkt .top { display: flex; justify-content: space-between; align-items: baseline; }
+  .mkt .sym { font-weight: 620; }
+  .mkt .px { font-size: 22px; font-weight: 650; margin-top: 4px; letter-spacing: -0.02em; }
+  .chip { font-size: 11.5px; border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; color: var(--text-secondary); }
+  .spark { height: 54px; margin-top: 8px; position: relative; }
+  .spark svg { width: 100%; height: 100%; display: block; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--text-muted); font-weight: 500; font-size: 12px; padding: 6px 6px; border-bottom: 1px solid var(--border); }
+  td { padding: 7px 6px; border-bottom: 1px solid var(--grid); }
+  td.num, th.num { text-align: right; }
+  footer { margin-top: 18px; color: var(--text-muted); font-size: 12px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .alert { border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; border: 1px solid var(--border); background: var(--surface-1); display: none; }
+  .alert b { font-weight: 650; }
+  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); } .markets, .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Bot de trading</h1>
+      <div class="sub" id="sub">Chargement…</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span class="badge" id="modeBadge"><span class="dot"></span><span>—</span></span>
+      <span class="badge" id="statusBadge"><span class="dot"></span><span>—</span></span>
+      <span class="badge" id="liveBadge"><span class="dot"></span><span>Prix en direct…</span></span>
+    </div>
+  </header>
+
+  <div class="alert" id="alert"></div>
+
+  <section class="kpis">
+    <div class="card kpi"><div class="label">Capital (prix en direct)</div><div class="value" id="kEquity">—</div><div class="note" id="kEquityNote">—</div></div>
+    <div class="card kpi"><div class="label">Performance depuis le départ</div><div class="value" id="kPerf">—</div><div class="note" id="kPerfNote">—</div></div>
+    <div class="card kpi"><div class="label">Trades clôturés</div><div class="value" id="kTrades">—</div><div class="note" id="kTradesNote">—</div></div>
+    <div class="card kpi"><div class="label">Exposition</div><div class="value" id="kExpo">—</div><div class="note" id="kExpoNote">—</div></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <div><h2>Évolution du capital</h2><div class="muted">Un point par passage du bot · ligne pointillée = capital de départ</div></div>
+      <div class="muted" id="histRange"></div>
+    </div>
+    <div class="chart" id="equityChart"></div>
+  </section>
+
+  <section class="markets" id="markets"></section>
+
+  <section class="grid2">
+    <div class="card">
+      <div class="card-head"><h2>Positions ouvertes</h2><span class="muted">valorisées au prix en direct</span></div>
+      <div id="positions"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Derniers trades</h2><span class="muted" id="tradesCount"></span></div>
+      <div id="trades"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span id="foot1">Simulation : aucun argent réel n'est engagé.</span>
+    <span>Page rechargée toutes les 60 s · prix Kraken toutes les 15 s</span>
+  </footer>
+</div>
+
+<script>
+// Les données sont injectées par le bot à chaque passage (pas de lecture de fichier : compatible Safari).
+let D = {"updated": 1793748418928, "mode": "paper", "exchange": "kraken", "quote": "EUR", "timeframe": "1h", "symbols": ["BTC/EUR", "ETH/EUR", "SOL/EUR"], "initial": 1000, "equity": 1000, "cash": 1000, "halted": false, "positions": {}, "trades": [], "n_trades": 0, "history": [[1793747259896, 1000], [1793748015439, 1000], [1793748418928, 1000]], "candles": {"BTC/EUR": [[1793142000000, 72600.9], [1793145600000, 72461.4], [1793149200000, 72660.5], [1793152800000, 72654.6], [1793156400000, 72800.6], [1793160000000, 72695.4], [1793163600000, 72636.2], [1793167200000, 72617.6], [1793170800000, 72786.8], [1793174400000, 73124.0], [1793178000000, 73176.2], [1793181600000, 73160.6], [1793185200000, 72982.9], [1793188800000, 72423.6], [1793192400000, 72407.5], [1793196000000, 72297.4], [1793199600000, 72227.4], [1793203200000, 72236.8], [1793206800000, 72518.1], [1793210400000, 72588.7], [1793214000000, 73084.8], [1793217600000, 72861.9], [1793221200000, 72933.9], [1793224800000, 72949.8], [1793228400000, 72872.3], [1793232000000, 72740.5], [1793235600000, 71692.9], [1793239200000, 71623.5], [1793242800000, 71569.7], [1793246400000, 71935.6], [1793250000000, 71957.2], [1793253600000, 71707.7], [1793257200000, 71572.5], [1793260800000, 71786.9], [1793264400000, 71956.5], [1793268000000, 71943.9], [1793271600000, 71872.3], [1793275200000, 71849.0], [1793278800000, 72033.6], [1793282400000, 72634.2], [1793286000000, 73171.8], [1793289600000, 72723.3], [1793293200000, 72345.5], [1793296800000, 72369.7], [1793300400000, 72351.7], [1793304000000, 70495.0], [1793307600000, 70630.6], [1793311200000, 70502.0], [1793314800000, 69587.6], [1793318400000, 68849.2], [1793322000000, 68489.6], [1793325600000, 68766.4], [1793329200000, 69786.1], [1793332800000, 69823.2], [1793336400000, 70095.1], [1793340000000, 70234.4], [1793343600000, 69782.1], [1793347200000, 69598.2], [1793350800000, 69282.0], [1793354400000, 69367.9], [1793358000000, 69028.7], [1793361600000, 69189.3], [1793365200000, 69082.4], [1793368800000, 69125.0], [1793372400000, 69450.0], [1793376000000, 69225.4], [1793379600000, 69115.7], [1793383200000, 68534.1], [1793386800000, 68790.0], [1793390400000, 68831.7], [1793394000000, 68617.9], [1793397600000, 68849.0], [1793401200000, 69225.4], [1793404800000, 69410.5], [1793408400000, 69265.5], [1793412000000, 69318.3], [1793415600000, 69065.9], [1793419200000, 69087.3], [1793422800000, 69157.6], [1793426400000, 69276.7], [1793430000000, 69241.8], [1793433600000, 69248.3], [1793437200000, 69329.6], [1793440800000, 69310.1], [1793444400000, 69505.0], [1793448000000, 69420.7], [1793451600000, 69390.6], [1793455200000, 69317.4], [1793458800000, 69477.8], [1793462400000, 69489.9], [1793466000000, 69550.2], [1793469600000, 69487.5], [1793473200000, 69423.8], [1793476800000, 69415.7], [1793480400000, 69535.1], [1793484000000, 69397.8], [1793487600000, 69435.1], [1793491200000, 69544.1], [1793494800000, 69550.5], [1793498400000, 69562.9], [1793502000000, 69604.2], [1793505600000, 69634.3], [1793509200000, 69700.0], [1793512800000, 69834.0], [1793516400000, 69769.1], [1793520000000, 70044.3], [1793523600000, 69925.0], [1793527200000, 69837.5], [1793530800000, 69773.4], [1793534400000, 69675.5], [1793538000000, 69841.6], [1793541600000, 69866.9], [1793545200000, 69814.1], [1793548800000, 69963.0], [1793552400000, 69819.8], [1793556000000, 69758.9], [1793559600000, 69691.8], [1793563200000, 69846.1], [1793566800000, 70058.9], [1793570400000, 69725.0], [1793574000000, 70186.4], [1793577600000, 69922.3], [1793581200000, 70136.0], [1793584800000, 70201.2], [1793588400000, 70314.3], [1793592000000, 70091.0], [1793595600000, 70019.6], [1793599200000, 69806.4], [1793602800000, 69683.1], [1793606400000, 69644.6], [1793610000000, 69517.0], [1793613600000, 69507.3], [1793617200000, 69404.0], [1793620800000, 69305.5], [1793624400000, 69397.5], [1793628000000, 69334.1], [1793631600000, 69137.8], [1793635200000, 69098.6], [1793638800000, 68769.9], [1793642400000, 68681.0], [1793646000000, 68764.4], [1793649600000, 68495.5], [1793653200000, 68565.4], [1793656800000, 68640.2], [1793660400000, 68532.3], [1793664000000, 68829.3], [1793667600000, 68842.4], [1793671200000, 68481.4], [1793674800000, 68649.8], [1793678400000, 68656.3], [1793682000000, 68372.8], [1793685600000, 68328.1], [1793689200000, 68481.2], [1793692800000, 68356.1], [1793696400000, 68757.3], [1793700000000, 68862.5], [1793703600000, 68859.4], [1793707200000, 69146.2], [1793710800000, 69041.4], [1793714400000, 69018.7], [1793718000000, 69309.5], [1793721600000, 69384.4], [1793725200000, 69290.1], [1793728800000, 69234.7], [1793732400000, 69258.9], [1793736000000, 69504.2], [1793739600000, 69528.0], [1793743200000, 69530.3]], "ETH/EUR": [[1793142000000, 2108.89], [1793145600000, 2105.48], [1793149200000, 2114.42], [1793152800000, 2116.21], [1793156400000, 2118.03], [1793160000000, 2114.38], [1793163600000, 2111.85], [1793167200000, 2111.49], [1793170800000, 2119.59], [1793174400000, 2129.18], [1793178000000, 2129.95], [1793181600000, 2126.45], [1793185200000, 2119.53], [1793188800000, 2099.12], [1793192400000, 2095.2], [1793196000000, 2092.24], [1793199600000, 2093.47], [1793203200000, 2093.25], [1793206800000, 2104.73], [1793210400000, 2109.7], [1793214000000, 2122.97], [1793217600000, 2114.8], [1793221200000, 2118.91], [1793224800000, 2115.47], [1793228400000, 2113.82], [1793232000000, 2111.49], [1793235600000, 2071.78], [1793239200000, 2070.14], [1793242800000, 2069.68], [1793246400000, 2081.05], [1793250000000, 2083.91], [1793253600000, 2074.66], [1793257200000, 2071.24], [1793260800000, 2080.28], [1793264400000, 2082.92], [1793268000000, 2086.95], [1793271600000, 2084.76], [1793275200000, 2085.02], [1793278800000, 2090.56], [1793282400000, 2097.84], [1793286000000, 2119.22], [1793289600000, 2105.54], [1793293200000, 2093.9], [1793296800000, 2086.97], [1793300400000, 2091.93], [1793304000000, 2019.86], [1793307600000, 2032.43], [1793311200000, 2030.35], [1793314800000, 2011.34], [1793318400000, 1981.88], [1793322000000, 1957.46], [1793325600000, 1973.55], [1793329200000, 1995.73], [1793332800000, 2002.04], [1793336400000, 1999.0], [1793340000000, 2013.29], [1793343600000, 1997.73], [1793347200000, 1988.35], [1793350800000, 1988.41], [1793354400000, 2005.67], [1793358000000, 1995.57], [1793361600000, 1996.85], [1793365200000, 1994.64], [1793368800000, 2002.56], [1793372400000, 1993.77], [1793376000000, 1999.25], [1793379600000, 2010.08], [1793383200000, 1996.97], [1793386800000, 2002.28], [1793390400000, 2004.07], [1793394000000, 2002.98], [1793397600000, 2000.71], [1793401200000, 2009.64], [1793404800000, 2014.22], [1793408400000, 2008.86], [1793412000000, 2011.3], [1793415600000, 2005.5], [1793419200000, 2004.59], [1793422800000, 2007.33], [1793426400000, 2010.98], [1793430000000, 2008.63], [1793433600000, 2007.23], [1793437200000, 2011.1], [1793440800000, 2010.3], [1793444400000, 2013.9], [1793448000000, 2017.12], [1793451600000, 2016.52], [1793455200000, 2011.2], [1793458800000, 2015.91], [1793462400000, 2017.01], [1793466000000, 2019.56], [1793469600000, 2019.45], [1793473200000, 2017.92], [1793476800000, 2018.04], [1793480400000, 2019.64], [1793484000000, 2018.49], [1793487600000, 2019.89], [1793491200000, 2025.5], [1793494800000, 2031.63], [1793498400000, 2027.98], [1793502000000, 2030.55], [1793505600000, 2029.28], [1793509200000, 2031.35], [1793512800000, 2032.48], [1793516400000, 2032.43], [1793520000000, 2037.95], [1793523600000, 2032.58], [1793527200000, 2032.07], [1793530800000, 2031.71], [1793534400000, 2023.69], [1793538000000, 2030.11], [1793541600000, 2033.37], [1793545200000, 2029.53], [1793548800000, 2032.34], [1793552400000, 2027.53], [1793556000000, 2027.52], [1793559600000, 2024.23], [1793563200000, 2029.69], [1793566800000, 2037.3], [1793570400000, 2024.87], [1793574000000, 2038.21], [1793577600000, 2033.73], [1793581200000, 2048.74], [1793584800000, 2054.06], [1793588400000, 2065.5], [1793592000000, 2049.63], [1793595600000, 2047.51], [1793599200000, 2041.63], [1793602800000, 2038.7], [1793606400000, 2045.37], [1793610000000, 2040.06], [1793613600000, 2038.47], [1793617200000, 2037.76], [1793620800000, 2036.41], [1793624400000, 2037.78], [1793628000000, 2040.5], [1793631600000, 2027.8], [1793635200000, 2022.63], [1793638800000, 2015.33], [1793642400000, 2009.72], [1793646000000, 2010.5], [1793649600000, 2005.56], [1793653200000, 2015.02], [1793656800000, 2013.89], [1793660400000, 2010.28], [1793664000000, 2015.55], [1793667600000, 2015.85], [1793671200000, 2010.55], [1793674800000, 2010.76], [1793678400000, 2014.07], [1793682000000, 2006.05], [1793685600000, 2003.97], [1793689200000, 2012.95], [1793692800000, 2013.6], [1793696400000, 2023.62], [1793700000000, 2028.63], [1793703600000, 2024.6], [1793707200000, 2038.21], [1793710800000, 2040.94], [1793714400000, 2039.52], [1793718000000, 2051.51], [1793721600000, 2051.36], [1793725200000, 2049.22], [1793728800000, 2046.18], [1793732400000, 2041.55], [1793736000000, 2045.0], [1793739600000, 2048.42], [1793743200000, 2047.39]], "SOL/EUR": [[1793142000000, 90.95], [1793145600000, 90.89], [1793149200000, 91.27], [1793152800000, 91.28], [1793156400000, 91.55], [1793160000000, 91.58], [1793163600000, 91.42], [1793167200000, 91.54], [1793170800000, 91.86], [1793174400000, 92.17], [1793178000000, 92.4], [1793181600000, 92.45], [1793185200000, 92.21], [1793188800000, 91.08], [1793192400000, 90.73], [1793196000000, 90.52], [1793199600000, 90.6], [1793203200000, 90.7], [1793206800000, 91.19], [1793210400000, 91.53], [1793214000000, 92.27], [1793217600000, 91.86], [1793221200000, 92.09], [1793224800000, 91.93], [1793228400000, 91.79], [1793232000000, 91.35], [1793235600000, 89.41], [1793239200000, 89.62], [1793242800000, 89.3], [1793246400000, 89.78], [1793250000000, 89.99], [1793253600000, 89.76], [1793257200000, 89.45], [1793260800000, 89.87], [1793264400000, 89.97], [1793268000000, 90.14], [1793271600000, 89.99], [1793275200000, 90.23], [1793278800000, 90.32], [1793282400000, 91.08], [1793286000000, 91.91], [1793289600000, 91.2], [1793293200000, 90.4], [1793296800000, 90.08], [1793300400000, 89.34], [1793304000000, 86.02], [1793307600000, 87.16], [1793311200000, 86.6], [1793314800000, 85.3], [1793318400000, 84.6], [1793322000000, 83.78], [1793325600000, 84.62], [1793329200000, 86.71], [1793332800000, 86.79], [1793336400000, 87.5], [1793340000000, 87.74], [1793343600000, 86.9], [1793347200000, 86.87], [1793350800000, 86.36], [1793354400000, 86.7], [1793358000000, 86.15], [1793361600000, 86.57], [1793365200000, 85.17], [1793368800000, 84.6], [1793372400000, 84.92], [1793376000000, 85.05], [1793379600000, 84.55], [1793383200000, 84.3], [1793386800000, 84.7], [1793390400000, 85.21], [1793394000000, 85.39], [1793397600000, 85.81], [1793401200000, 86.23], [1793404800000, 86.63], [1793408400000, 86.55], [1793412000000, 86.64], [1793415600000, 86.09], [1793419200000, 85.66], [1793422800000, 85.86], [1793426400000, 85.94], [1793430000000, 85.6], [1793433600000, 85.37], [1793437200000, 85.52], [1793440800000, 85.61], [1793444400000, 85.87], [1793448000000, 86.03], [1793451600000, 85.75], [1793455200000, 85.73], [1793458800000, 85.92], [1793462400000, 85.87], [1793466000000, 86.01], [1793469600000, 85.97], [1793473200000, 85.75], [1793476800000, 85.62], [1793480400000, 85.84], [1793484000000, 85.45], [1793487600000, 85.45], [1793491200000, 85.65], [1793494800000, 85.63], [1793498400000, 85.39], [1793502000000, 85.56], [1793505600000, 85.45], [1793509200000, 85.64], [1793512800000, 85.64], [1793516400000, 85.53], [1793520000000, 85.82], [1793523600000, 85.49], [1793527200000, 85.4], [1793530800000, 85.3], [1793534400000, 84.83], [1793538000000, 84.99], [1793541600000, 85.06], [1793545200000, 84.88], [1793548800000, 84.86], [1793552400000, 84.7], [1793556000000, 84.48], [1793559600000, 84.18], [1793563200000, 84.56], [1793566800000, 84.88], [1793570400000, 83.94], [1793574000000, 84.69], [1793577600000, 84.2], [1793581200000, 84.91], [1793584800000, 84.98], [1793588400000, 85.43], [1793592000000, 84.91], [1793595600000, 84.77], [1793599200000, 84.32], [1793602800000, 84.11], [1793606400000, 84.25], [1793610000000, 84.04], [1793613600000, 83.97], [1793617200000, 83.84], [1793620800000, 83.8], [1793624400000, 84.08], [1793628000000, 83.92], [1793631600000, 83.41], [1793635200000, 83.3], [1793638800000, 82.19], [1793642400000, 82.25], [1793646000000, 81.88], [1793649600000, 81.67], [1793653200000, 82.36], [1793656800000, 82.22], [1793660400000, 82.06], [1793664000000, 82.49], [1793667600000, 82.5], [1793671200000, 81.96], [1793674800000, 82.24], [1793678400000, 82.34], [1793682000000, 81.86], [1793685600000, 81.66], [1793689200000, 82.12], [1793692800000, 82.01], [1793696400000, 82.48], [1793700000000, 82.51], [1793703600000, 82.66], [1793707200000, 83.14], [1793710800000, 83.21], [1793714400000, 83.31], [1793718000000, 83.66], [1793721600000, 83.5], [1793725200000, 83.33], [1793728800000, 83.37], [1793732400000, 83.28], [1793736000000, 83.53], [1793739600000, 83.64], [1793743200000, 83.53]]}}, live = {}, liveOk = null, liveAt = null;
+
+const $ = id => document.getElementById(id);
+const fmtMoney = (v, q = "EUR", d = 2) => v == null || isNaN(v) ? "—" :
+  new Intl.NumberFormat("fr-FR", { style: "currency", currency: q, minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+const fmtPx = v => v == null ? "—" : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: v >= 1000 ? 0 : v >= 10 ? 2 : 4, minimumFractionDigits: v >= 1000 ? 0 : 2 }).format(v);
+const fmtPct = v => v == null || isNaN(v) ? "—" : (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v * 100).toFixed(2).replace(".", ",") + " %";
+const fmtSigned = (v, q) => v == null ? "—" : (v > 0 ? "+" : v < 0 ? "−" : "") + fmtMoney(Math.abs(v), q);
+const fmtTime = ms => new Date(ms).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+const ago = ms => { const m = Math.round((Date.now() - ms) / 60000); return m < 1 ? "à l'instant" : m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.floor(m/60)} h ${String(m%60).padStart(2,"0")}` : `il y a ${Math.floor(m/1440)} j`; };
+const delta = (v, txt) => `<span class="delta ${v > 0 ? "up" : v < 0 ? "down" : ""}">${v > 0 ? "<i>▲</i>" : v < 0 ? "<i>▼</i>" : ""}${txt}</span>`;
+const krakenPair = s => s.replace("BTC", "XBT").replace("/", "");
+const priceOf = s => live[s]?.last ?? lastClose(s);
+const lastClose = s => { const c = D?.candles?.[s]; return c && c.length ? c[c.length - 1][1] : D?.positions?.[s]?.entry; };
+
+function setBadge(id, cls, text) {
+  const b = $(id); b.querySelector(".dot").className = "dot " + (cls || ""); b.querySelector("span:last-child").textContent = text;
+}
+
+// ── Prix en direct depuis l'API publique Kraken ──
+async function loadLive() {
+  if (!D) return;
+  try {
+    const res = await Promise.all(D.symbols.map(async s => {
+      const r = await fetch("https://api.kraken.com/0/public/Ticker?pair=" + krakenPair(s), { cache: "no-store" });
+      const j = await r.json();
+      const t = Object.values(j.result || {})[0];
+      if (!t) throw new Error(j.error);
+      return [s, { last: +t.c[0], open: +t.o }];
+    }));
+    res.forEach(([s, v]) => live[s] = v);
+    liveOk = true; liveAt = Date.now();
+  } catch (e) { liveOk = false; }
+  render();
+}
+
+function showAlert(html) { const a = $("alert"); a.innerHTML = html; a.style.display = html ? "block" : "none"; }
+
+function render() {
+  if (!D) return;
+  const q = D.quote;
+  const positions = Object.entries(D.positions || {});
+  const posVal = positions.reduce((a, [s, p]) => a + p.qty * priceOf(s), 0);
+  const cash = D.cash ?? 0;
+  const equity = cash + posVal;
+  const initial = D.initial || equity;
+  const perf = equity / initial - 1;
+
+  $("sub").textContent = `${D.exchange[0].toUpperCase() + D.exchange.slice(1)} · ${D.symbols.join(", ")} · bougies ${D.timeframe}`;
+  setBadge("modeBadge", D.mode === "live" ? "critical" : "", D.mode === "live" ? "ARGENT RÉEL" : "Simulation");
+  $("foot1").textContent = D.mode === "live" ? "Mode réel : ces chiffres concernent ton argent." : "Simulation : aucun argent réel n'est engagé.";
+
+  const ageMin = (Date.now() - D.updated) / 60000;
+  if (D.halted) { setBadge("statusBadge", "critical", "Arrêté (drawdown max)"); }
+  else if (ageMin > 130) { setBadge("statusBadge", "warning", "Bot en retard · " + ago(D.updated)); }
+  else { setBadge("statusBadge", "good", "Bot actif · passage " + ago(D.updated)); }
+  showAlert(D.halted ? "<b>Le bot s'est arrêté</b> : la perte depuis le plus haut a dépassé la limite. Il n'ouvre plus de positions."
+          : ageMin > 130 ? `<b>Le bot n'a pas tourné depuis ${ago(D.updated).replace("il y a ", "")}.</b> Il faut que le Mac soit allumé et l'app Claude ouverte.` : "");
+  if (liveOk === null) setBadge("liveBadge", "", "Prix en direct…");
+  else if (liveOk) setBadge("liveBadge", "good", "Prix en direct · " + new Date(liveAt).toLocaleTimeString("fr-FR"));
+  else setBadge("liveBadge", "warning", "Prix en direct indisponibles");
+
+  $("kEquity").textContent = fmtMoney(equity, q);
+  $("kEquityNote").textContent = `départ ${fmtMoney(initial, q, 0)} · cash ${fmtMoney(cash, q)}`;
+  $("kPerf").innerHTML = delta(perf, fmtPct(perf));
+  $("kPerfNote").textContent = fmtSigned(equity - initial, q);
+  const trades = D.trades || [];
+  const wins = trades.filter(t => t.pnl > 0).length;
+  $("kTrades").textContent = D.n_trades;
+  $("kTradesNote").textContent = trades.length ? `${Math.round(wins / trades.length * 100)} % gagnants · P&L ${fmtSigned(trades.reduce((a, t) => a + t.pnl, 0), q)}` : "aucun trade pour l'instant";
+  $("kExpo").textContent = equity > 0 ? Math.round(posVal / equity * 100) + " %" : "—";
+  $("kExpoNote").textContent = positions.length ? `${positions.length} position${positions.length > 1 ? "s" : ""} · ${fmtMoney(posVal, q)}` : "100 % en cash, en attente d'un signal";
+
+  // Courbe : historique du bot + point en direct
+  const hist = (D.history || []).map(([t, v]) => [t, v]);
+  if (liveOk && hist.length >= 2) hist.push([Date.now(), equity]);
+  drawEquity(hist, initial, q);
+  $("histRange").textContent = hist.length > 1 ? `${fmtTime(hist[0][0])} → maintenant` : "";
+
+  // Marchés
+  $("markets").innerHTML = D.symbols.map(s => {
+    const px = priceOf(s), lv = live[s];
+    const ch = lv ? lv.last / lv.open - 1 : null;
+    const inPos = D.positions?.[s];
+    return `<div class="card mkt"><div class="top"><span class="sym">${s}</span>${inPos ? '<span class="chip">en position</span>' : '<span class="muted">pas de position</span>'}</div>
+      <div class="px">${fmtPx(px)} <span class="muted" style="font-size:13px;font-weight:400">${q}</span></div>
+      <div class="muted">${ch == null ? "variation du jour indisponible" : delta(ch, fmtPct(ch) + " aujourd'hui")}</div>
+      <div class="spark" data-sym="${s}"></div></div>`;
+  }).join("");
+  D.symbols.forEach(s => drawSpark(document.querySelector(`.spark[data-sym="${s}"]`), D.candles?.[s] || [], live[s]?.last, D.positions?.[s]));
+
+  // Positions
+  $("positions").innerHTML = positions.length ? `<table><tr><th>Paire</th><th class="num">Entrée</th><th class="num">Prix</th><th class="num">Stop</th><th class="num">P&L latent</th></tr>` +
+    positions.map(([s, p]) => { const px = priceOf(s), pnl = p.qty * px - p.cost, pc = pnl / p.cost;
+      return `<tr><td>${s}</td><td class="num">${fmtPx(p.entry)}</td><td class="num">${fmtPx(px)}</td><td class="num">${fmtPx(p.stop)}</td><td class="num">${delta(pnl, fmtSigned(pnl, q) + " (" + fmtPct(pc) + ")")}</td></tr>`; }).join("") + "</table>"
+    : `<div class="muted" style="padding:14px 0">Aucune position. Le bot attend qu'une tendance haussière se confirme (croisement des moyennes mobiles au-dessus de la moyenne 200).</div>`;
+
+  // Trades
+  $("tradesCount").textContent = D.n_trades ? `${D.n_trades} au total` : "";
+  const reasons = { stop: "stop", signal: "signal" };
+  $("trades").innerHTML = trades.length ? `<table><tr><th>Clôture</th><th>Paire</th><th class="num">Entrée → sortie</th><th>Motif</th><th class="num">P&L</th></tr>` +
+    trades.slice(-12).reverse().map(t => `<tr><td>${fmtTime(t.closed)}</td><td>${t.symbol}</td><td class="num">${fmtPx(t.entry)} → ${fmtPx(t.exit)}</td><td>${reasons[t.reason] || t.reason}</td><td class="num">${delta(t.pnl, fmtSigned(t.pnl, q))} <span class="muted">${t.r_multiple >= 0 ? "+" : "−"}${Math.abs(t.r_multiple).toFixed(1)}R</span></td></tr>`).join("") + "</table>"
+    : `<div class="muted" style="padding:14px 0">Aucun trade clôturé pour l'instant. Ils apparaîtront ici avec leur résultat.</div>`;
+}
+
+// ── Graphiques SVG ──
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent && parent.appendChild(e); return e; }
+
+function drawEquity(pts, initial, q) {
+  const box = $("equityChart");
+  if (pts.length < 2) { box.innerHTML = `<div class="empty">La courbe se dessine au fil des passages horaires du bot : premier tracé dans environ une heure.</div>`; return; }
+  box.innerHTML = ""; const W = box.clientWidth, H = box.clientHeight, L = 64, R = 12, T = 10, B = 26;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}` }, box);
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]).concat([initial]);
+  let y0 = Math.min(...ys), y1 = Math.max(...ys); const pad = Math.max((y1 - y0) * 0.15, initial * 0.005); y0 -= pad; y1 += pad;
+  const x0 = xs[0], x1 = xs[xs.length - 1];
+  const X = t => L + (t - x0) / (x1 - x0 || 1) * (W - L - R), Y = v => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+  for (let i = 0; i <= 4; i++) { const v = y0 + (y1 - y0) * i / 4, y = Y(v);
+    el("line", { x1: L, x2: W - R, y1: y, y2: y, stroke: "var(--grid)", "stroke-width": 1 }, svg);
+    el("text", { x: L - 8, y: y + 4, "text-anchor": "end", "font-size": 11, fill: "var(--text-muted)" }, svg).textContent = fmtMoney(v, q, 0); }
+  for (let i = 0; i <= 3; i++) { const t = x0 + (x1 - x0) * i / 3;
+    el("text", { x: X(t), y: H - 6, "text-anchor": i === 0 ? "start" : i === 3 ? "end" : "middle", "font-size": 11, fill: "var(--text-muted)" }, svg).textContent = fmtTime(t); }
+  el("line", { x1: L, x2: W - R, y1: Y(initial), y2: Y(initial), stroke: "var(--baseline)", "stroke-width": 1, "stroke-dasharray": "4 4" }, svg);
+  el("path", { d: pts.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1)).join(""), fill: "none", stroke: "var(--series-1)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+  const last = pts[pts.length - 1];
+  el("circle", { cx: X(last[0]), cy: Y(last[1]), r: 4, fill: "var(--series-1)", stroke: "var(--surface-1)", "stroke-width": 2 }, svg);
+  // survol : réticule + info-bulle
+  const cross = el("line", { y1: T, y2: H - B, stroke: "var(--baseline)", "stroke-width": 1, visibility: "hidden" }, svg);
+  const dot = el("circle", { r: 4, fill: "var(--series-1)", stroke: "var(--surface-1)", "stroke-width": 2, visibility: "hidden" }, svg);
+  const tip = document.createElement("div"); tip.className = "tip"; box.appendChild(tip);
+  const hit = el("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" }, svg);
+  hit.addEventListener("mousemove", ev => {
+    const r = svg.getBoundingClientRect(), mx = (ev.clientX - r.left) * W / r.width;
+    let best = 0; pts.forEach((p, i) => { if (Math.abs(X(p[0]) - mx) < Math.abs(X(pts[best][0]) - mx)) best = i; });
+    const p = pts[best], cx = X(p[0]), cy = Y(p[1]);
+    cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.setAttribute("visibility", "visible");
+    dot.setAttribute("cx", cx); dot.setAttribute("cy", cy); dot.setAttribute("visibility", "visible");
+    tip.innerHTML = `${best === pts.length - 1 && liveOk ? "Maintenant (direct)" : fmtTime(p[0])}<br><b>${fmtMoney(p[1], q)}</b> · ${fmtPct(p[1] / initial - 1)}`;
+    tip.style.display = "block";
+    const tx = cx * r.width / W; tip.style.left = Math.min(tx + 12, r.width - tip.offsetWidth - 4) + "px"; tip.style.top = Math.max(cy * r.height / H - 46, 0) + "px";
+  });
+  hit.addEventListener("mouseleave", () => { cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); tip.style.display = "none"; });
+}
+
+function drawSpark(box, candles, livePx, pos) {
+  if (!box) return;
+  const pts = candles.slice(); if (livePx) pts.push([Date.now(), livePx]);
+  if (pts.length < 2) { box.innerHTML = `<div class="muted">historique au prochain passage</div>`; return; }
+  const W = box.clientWidth || 300, H = box.clientHeight || 54;
+  const vals = pts.map(p => p[1]).concat(pos ? [pos.entry, pos.stop] : []);
+  const lo = Math.min(...vals), hi = Math.max(...vals), x0 = pts[0][0], x1 = pts[pts.length - 1][0];
+  const X = t => 2 + (t - x0) / (x1 - x0 || 1) * (W - 4), Y = v => 3 + (1 - (v - lo) / (hi - lo || 1)) * (H - 6);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}` }); box.innerHTML = ""; box.appendChild(svg);
+  if (pos) {
+    el("line", { x1: 0, x2: W, y1: Y(pos.entry), y2: Y(pos.entry), stroke: "var(--baseline)", "stroke-dasharray": "3 3" }, svg);
+    el("line", { x1: 0, x2: W, y1: Y(pos.stop), y2: Y(pos.stop), stroke: "var(--critical)", "stroke-dasharray": "2 3", opacity: .7 }, svg);
+  }
+  el("path", { d: pts.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1)).join(""), fill: "none", stroke: "var(--series-1)", "stroke-width": 1.5, "stroke-linejoin": "round" }, svg);
+  const l = pts[pts.length - 1]; el("circle", { cx: X(l[0]), cy: Y(l[1]), r: 3, fill: "var(--series-1)" }, svg);
+  box.title = "7 derniers jours" + (pos ? " · pointillés : prix d'entrée et stop" : "");
+}
+
+if (D) render();
+else showAlert("<b>Pas encore de données.</b> Elles apparaîtront après le prochain passage horaire du bot.");
+// Recharge la page toutes les 60 s pour lire la dernière version écrite par le bot.
+setTimeout(() => location.reload(), 60000);
+setTimeout(loadLive, 800);
+setInterval(loadLive, 15000);
+setInterval(render, 60000);   // rafraîchit les « il y a X min »
+window.addEventListener("resize", render);
+</script>
+</body>
+</html>
