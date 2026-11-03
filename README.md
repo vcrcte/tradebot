@@ -1,9 +1,9 @@
 # Bot de trading crypto (utilisable depuis la France)
 
-> **Tableau de bord en direct : https://vcrcte.github.io/tradebot/**
->
-> Ce dépôt fait tourner le bot **en simulation** (argent fictif) toutes les heures grâce à GitHub Actions
-> (`.github/workflows/bot.yml`). Chaque passage enregistre `state_paper.json` et régénère `docs/index.html`.
+> **Dépôt privé.** Ce dépôt fait tourner le bot **en simulation** (argent fictif) toutes les heures grâce à
+> GitHub Actions (`.github/workflows/bot.yml`). Chaque passage enregistre `state_paper.json` et régénère
+> `docs/index.html` (le tableau de bord, données intégrées). L'app « Bot de trading » sur le Mac récupère
+> ce dépôt toutes les 10 minutes et affiche le tableau de bord en local.
 > Les achats, ventes et erreurs sont publiés en commentaire de l'issue « Alertes du bot de trading ».
 > Le workflow refuse de tourner si `config.yaml` n'est pas en `mode: paper` : aucune clé API n'est stockée ici.
 
