@@ -64,3 +64,24 @@ Corriger les points ci-dessus, puis tester des sources de rendement différentes
 (taux de financement des contrats perpétuels, flux on-chain), qui sont celles qu'utilisent réellement
 les fonds crypto. Toute nouvelle idée devra être jugée sur une **nouvelle** période jamais vue :
 l'année de test actuelle a été consommée.
+
+---
+
+# Volet actions (ETF) : novembre 2026
+
+**Verdict : aucune stratégie active déployée.** Trois stratégies classiques déclarées à l'avance
+(`research/stocks.py`), en euros, frais Interactive Brokers inclus (0,10 % par euro échangé).
+Sélection sur 2004-2019, test unique sur 2020 → nov. 2026.
+
+| Stratégie | 2004-2019 : CAGR / Sharpe / pire baisse | 2020-2026 : CAGR / Sharpe / pire baisse |
+|---|---|---|
+| S1 Allocation tactique (tendance) | +7,1 % / 0,57 / 16 % | +5,4 % / 0,57 / 14 % |
+| S2 Double momentum | +9,8 % / 0,59 / 22 % | +11,7 % / 0,69 / 27 % |
+| **S3 Rotation sectorielle filtrée** (retenue) | +12,0 % / 0,72 / 21 % | **+5,7 % / 0,42 / 23 %** |
+| S&P 500 détenu | +9,8 % / 0,57 / 51 % | +15,0 % / 0,77 / 33 % |
+| 60/40 actions/obligations | +8,4 % / 0,63 / 26 % | +8,9 % / 0,68 / 19 % |
+
+S3, la meilleure en développement, échoue au test (Sharpe 0,42 contre 0,77 pour le S&P 500 détenu).
+Comme pour la crypto : les règles actives réduisent les pires baisses mais ne battent pas l'indice
+détenu une fois hors échantillon. Univers d'ETF larges : pas de biais du survivant ; données Yahoo
+Finance (cours ajustés des dividendes), risque de change EUR/USD inclus.
