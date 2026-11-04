@@ -6,7 +6,7 @@ mode: paper
 exchange: kraken          # agréé MiCA (Payward Europe). Alternatives ccxt : coinbase, bitstamp, bitvavo
 quote: EUR
 symbols: [BTC/EUR, ETH/EUR, SOL/EUR]
-timeframe: 1h             # le bot ne décide qu'à la clôture de chaque bougie
+timeframe: 4h             # bougies de 4 h : meilleur résultat en backtest, plus robuste aux passages sautés
 
 paper:
   initial_cash: 1000      # capital fictif en EUR
@@ -22,6 +22,7 @@ strategy:
   ema_trend: 200
   rsi_max: 70
   atr_mult: 3             # distance du stop suiveur en ATR
+  entry_window: 3         # un signal reste valable 3 bougies (12 h) : un passage sauté ne fait plus rater une entrée
 
 risk:
   risk_default: 0.01      # 1 % du capital risqué par trade tant que l'historique est court

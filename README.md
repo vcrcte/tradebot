@@ -11,12 +11,12 @@ Bot Python qui trade du BTC, de l'ETH ou du SOL contre l'euro sur **Kraken**, un
 
 ## Ce qu'il fait
 
-À chaque clôture de bougie (1 h par défaut), pour chaque paire :
+À chaque clôture de bougie (4 h par défaut), pour chaque paire :
 
 1. Il récupère les prix et calcule les indicateurs : EMA 20/50/200, RSI, ATR.
-2. **Entrée** : l'EMA 20 croise l'EMA 50 à la hausse, le prix est au-dessus de l'EMA 200 (tendance de fond haussière) et le RSI est sous 70.
+2. **Entrée** : l'EMA 20 est au-dessus de l'EMA 50, le prix au-dessus de l'EMA 200 (tendance de fond haussière) et le RSI sous 70, ces conditions étant apparues depuis au plus 3 bougies (`entry_window`).
 3. **Taille de position** : le risque par trade suit un demi-Kelly calculé sur l'historique des trades (1 % tant qu'il y a moins de 20 trades), plafonné à 2 %. Une position ne dépasse jamais 30 % du capital.
-4. **Sortie** : un stop suiveur à 3 × ATR, ou le croisement inverse des EMA.
+4. **Sortie** : un stop suiveur à 3 × ATR, ou l'EMA 20 repassée sous l'EMA 50.
 5. **Coupe-circuits** : à -5 % sur la journée, le bot n'ouvre plus rien jusqu'au lendemain. À -25 % depuis le plus haut, il s'arrête complètement.
 6. Il envoie une alerte Telegram à chaque achat, vente ou arrêt.
 

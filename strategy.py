@@ -1,8 +1,8 @@
 """Stratégie de suivi de tendance (long uniquement, spot).
 
-Entrée : croisement EMA rapide > EMA lente, prix au-dessus de l'EMA de tendance,
-         RSI pas en surachat.
-Sortie : croisement inverse OU stop suiveur basé sur l'ATR (géré par engine.py).
+Entrée : EMA rapide > EMA lente, prix au-dessus de l'EMA de tendance et RSI pas en surachat,
+         conditions apparues récemment (fenêtre `entry_window`).
+Sortie : EMA rapide sous l'EMA lente OU stop suiveur basé sur l'ATR (géré par engine.py).
 
 Tout est calculé sur des bougies CLÔTURÉES uniquement (pas de look-ahead).
 """
@@ -37,10 +37,16 @@ def min_history(p: dict) -> int:
 
 
 def signal(df: pd.DataFrame, p: dict) -> dict:
-    """df doit déjà contenir les indicateurs. Regarde les 2 dernières bougies clôturées."""
-    last, prev = df.iloc[-1], df.iloc[-2]
-    cross_up = prev.ema_fast <= prev.ema_slow and last.ema_fast > last.ema_slow
-    cross_down = prev.ema_fast >= prev.ema_slow and last.ema_fast < last.ema_slow
-    enter = bool(cross_up and last.close > last.ema_trend and last.rsi < p["rsi_max"])
-    return {"enter": enter, "exit": bool(cross_down), "close": float(last.close),
+    """df doit déjà contenir les indicateurs.
+
+    Entrée : toutes les conditions (EMA rapide > EMA lente, prix > EMA de tendance, RSI < rsi_max)
+    sont réunies maintenant ET sont devenues vraies il y a au plus `entry_window` bougies.
+    La fenêtre rend le bot insensible à un passage sauté, sans courir après une hausse ancienne.
+    Sortie : EMA rapide passée sous l'EMA lente (état, pas seulement le croisement)."""
+    window = int(p.get("entry_window", 1))
+    cond = (df.ema_fast > df.ema_slow) & (df.close > df.ema_trend) & (df.rsi < p["rsi_max"])
+    started = cond & ~cond.shift(fill_value=False)
+    enter = bool(cond.iloc[-1] and started.iloc[-window:].any())
+    last = df.iloc[-1]
+    return {"enter": enter, "exit": bool(last.ema_fast < last.ema_slow), "close": float(last.close),
             "atr": float(last.atr), "low": float(last.low), "open": float(last.open)}
