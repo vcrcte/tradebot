@@ -1,0 +1,30 @@
+Source : API publique Bitstamp (paires EUR). Généré par research/fetch_data.py
+
+BTC/EUR 1d: 3595 bougies depuis 2017-01-01
+BTC/EUR 4h: 21569 bougies depuis 2017-01-01
+ETH/EUR 1d: 3368 bougies depuis 2017-08-16
+ETH/EUR 4h: 20199 bougies depuis 2017-08-16
+SOL/EUR 1d: 1535 bougies depuis 2022-08-18
+SOL/EUR 4h: 9179 bougies depuis 2022-08-18
+XRP/EUR 1d: 3581 bougies depuis 2017-01-03
+XRP/EUR 4h: 21443 bougies depuis 2017-01-03
+ADA/EUR 1d: 1808 bougies depuis 2021-11-17
+ADA/EUR 4h: 10835 bougies depuis 2021-11-17
+LINK/EUR 1d: 2208 bougies depuis 2020-10-19
+LINK/EUR 4h: 13226 bougies depuis 2020-10-19
+DOT/EUR 1d: 1535 bougies depuis 2022-08-18
+DOT/EUR 4h: 8546 bougies depuis 2022-08-18
+LTC/EUR 1d: 3427 bougies depuis 2017-06-16
+LTC/EUR 4h: 20553 bougies depuis 2017-06-16
+AVAX/EUR 1d: 1701 bougies depuis 2022-03-08
+AVAX/EUR 4h: 10102 bougies depuis 2022-03-08
+DOGE/EUR 1d: 1414 bougies depuis 2022-12-21
+DOGE/EUR 4h: 8225 bougies depuis 2022-12-21
+BCH/EUR 1d: 3258 bougies depuis 2017-12-04
+BCH/EUR 4h: 19529 bougies depuis 2017-12-04
+UNI/EUR 1d: 2011 bougies depuis 2021-05-04
+UNI/EUR 4h: 11808 bougies depuis 2021-05-04
+AAVE/EUR 1d: 2026 bougies depuis 2021-04-16
+AAVE/EUR 4h: 11944 bougies depuis 2021-04-16
+XLM/EUR 1d: 2333 bougies depuis 2020-05-28
+XLM/EUR 4h: 13973 bougies depuis 2020-05-28
