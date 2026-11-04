@@ -2,7 +2,8 @@ name: Bot de trading (simulation)
 
 on:
   schedule:
-    - cron: "17 * * * *"     # toutes les heures (GitHub peut décaler de quelques minutes)
+    - cron: "17,47 * * * *"   # 2 créneaux par heure : GitHub saute parfois des exécutions planifiées.
+                              # Le bot ignore une bougie déjà traitée, donc pas de double décision.
   workflow_dispatch: {}       # bouton « Run workflow » pour un passage manuel
 
 permissions:
