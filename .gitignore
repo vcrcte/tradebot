@@ -7,3 +7,4 @@ body.md
 backtest_equity.png
 dashboard.html
 .venv/
+research/results/*_ml_pred.pkl
