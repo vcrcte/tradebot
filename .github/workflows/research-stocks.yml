@@ -1,0 +1,35 @@
+name: Recherche - données actions
+
+on:
+  push:
+    branches: [main]
+    paths: ["research/fetch_stocks.py"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tradebot
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas yfinance
+      - run: python research/fetch_stocks.py
+      - name: Enregistrer les données
+        run: |
+          git config user.name "tradebot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/data_stocks
+          git diff --cached --quiet && exit 0
+          git commit -m "Données de recherche : historique ETF (Yahoo Finance)"
+          for i in 1 2 3; do git pull --rebase -q && git push -q && exit 0; sleep 5; done
+          exit 1
