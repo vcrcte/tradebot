@@ -10,6 +10,7 @@ actions:
   - {nom: AIRO Group,         ticker: AIRO}
   - {nom: NuScale Power,      ticker: SMR}
   - {nom: Nano Nuclear,       ticker: NNE}
+  - {nom: Hermès,             ticker: RMS.PA}
 
 # Réglage « équilibré ». Un creux est signalé quand les trois conditions sont réunies :
 regles:
