@@ -1,22 +1,30 @@
-# Actions surveillées pour un achat long terme. Le bot ne fait que prévenir : il n'achète rien.
-# ticker = symbole Yahoo Finance
+# Actions surveillées pour un achat long terme, en UNE seule fois par action.
+# Le bot ne fait que prévenir : il n'achète rien.
+# ticker = symbole Yahoo Finance. Une fois l'action achetée, mettre achete: true : le bot arrête de la signaler.
 actions:
-  - {nom: Friedrich Vorwerk,  ticker: VH2.DE}
-  - {nom: Theon International, ticker: THEON.AS}
-  - {nom: Parrot,             ticker: PARRO.PA}
-  - {nom: Kodiak Gas Services, ticker: KGS}
-  - {nom: Centrus Energy,     ticker: LEU}
-  - {nom: Filtronic,          ticker: FTC.L}
-  - {nom: AIRO Group,         ticker: AIRO}
-  - {nom: NuScale Power,      ticker: SMR}
-  - {nom: Nano Nuclear,       ticker: NNE}
-  - {nom: Hermès,             ticker: RMS.PA}
+  - {nom: Friedrich Vorwerk,   ticker: VH2.DE,   achete: false}
+  - {nom: Theon International, ticker: THEON.AS, achete: false}
+  - {nom: Parrot,              ticker: PARRO.PA, achete: false}
+  - {nom: Kodiak Gas Services, ticker: KGS,      achete: false}
+  - {nom: Centrus Energy,      ticker: LEU,      achete: false}
+  - {nom: Filtronic,           ticker: FTC.L,    achete: false}
+  - {nom: AIRO Group,          ticker: AIRO,     achete: false}
+  - {nom: NuScale Power,       ticker: SMR,      achete: false}
+  - {nom: Nano Nuclear,        ticker: NNE,      achete: false}
+  - {nom: Hermès,              ticker: RMS.PA,   achete: false}
 
-# Réglage « équilibré ». Un creux est signalé quand les trois conditions sont réunies :
+# Réglage « équilibré », pensé pour un achat unique : on ne signale pas une action qui chute encore,
+# on attend qu'un vrai creux commence à se retourner.
 regles:
+  # 1) Il y a eu un vrai creux dans les 15 dernières séances :
   baisse_min: 0.15        # au moins -15 % sous le plus haut des 6 derniers mois
   ampleur_min: 1.5        # baisse d'au moins 1,5 fois l'amplitude normale d'un mois pour CETTE action
                           # (une action très volatile doit baisser plus pour que ce soit un vrai creux)
   rsi_max: 40             # RSI 14 jours sous 40 : la baisse est marquée, l'action est survendue
+  fenetre_creux: 15       # séances
+  # 2) Le cours commence à remonter, sans que l'occasion soit passée :
+  rebond_min: 0.05        # au moins +5 % au-dessus du point bas récent (plus pour une action très volatile)
+  encore_sous: 0.10       # toujours au moins 10 % sous le plus haut des 6 mois
+  # Anti-doublon :
   pause_jours: 20         # pas de nouvelle alerte sur la même action pendant 20 jours...
   aggravation: 0.10       # ...sauf si elle a encore perdu 10 points de plus depuis la dernière alerte
