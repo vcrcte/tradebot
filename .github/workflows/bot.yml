@@ -1,9 +1,10 @@
 name: Bot de trading (simulation)
 
 on:
-  schedule:
-    - cron: "17,47 * * * *"   # 2 créneaux par heure : GitHub saute parfois des exécutions planifiées.
-                              # Le bot ignore une bougie déjà traitée, donc pas de double décision.
+  # Arrêté le 24/11/2026 : projet crypto abandonné au profit de watch.py (surveillance d'actions).
+  # Pour le relancer, remettre :
+  # schedule:
+  #   - cron: "17,47 * * * *"
   workflow_dispatch: {}       # bouton « Run workflow » pour un passage manuel
 
 permissions:

@@ -1,0 +1,61 @@
+name: Surveillance actions (creux)
+
+on:
+  schedule:
+    - cron: "23 14 * * 1-5"   # milieu de séance : Europe avant clôture, US ouvert
+    - cron: "41 21 * * 1-5"   # après la clôture US (Europe déjà fermée)
+  workflow_dispatch:
+    inputs:
+      essai:
+        description: "Essai : afficher l'état et l'historique sans alerter ni enregistrer"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: tradebot
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install pandas numpy pyyaml yfinance
+
+      - name: Vérifier les actions
+        run: python watch.py ${{ inputs.essai && '--essai' || '' }}
+
+      - name: Publier les alertes
+        if: hashFiles('alerts_watch.txt') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          num=$(gh issue list --label creux --state open --json number -q '.[0].number')
+          if [ -z "$num" ]; then
+            gh label create creux --color d93f0b --force
+            num=$(gh issue create --title "Alertes : creux sur mes actions" --label creux \
+              --body "Chaque creux intéressant sur une action de watchlist.yaml est ajouté ici en commentaire. Abonne-toi à cette issue pour recevoir les notifications." | grep -o '[0-9]*$')
+          fi
+          { echo "**$(TZ=Europe/Paris date '+%d/%m %H:%M')**"; echo; sed 's/^/- /' alerts_watch.txt; } > body.md
+          gh issue comment "$num" --body-file body.md
+
+      - name: Enregistrer l'état
+        if: ${{ !inputs.essai }}
+        run: |
+          git config user.name "tradebot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add watch_state.json docs/watchlist.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Surveillance actions $(date -u '+%Y-%m-%d %H:%M') UTC"
+          for i in 1 2 3; do git pull --rebase -q && git push -q && exit 0; sleep 5; done
+          exit 1
