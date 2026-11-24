@@ -17,5 +17,5 @@ regles:
   ampleur_min: 1.5        # baisse d'au moins 1,5 fois l'amplitude normale d'un mois pour CETTE action
                           # (une action très volatile doit baisser plus pour que ce soit un vrai creux)
   rsi_max: 40             # RSI 14 jours sous 40 : la baisse est marquée, l'action est survendue
-  pause_jours: 10         # pas de nouvelle alerte sur la même action pendant 10 jours...
-  aggravation: 0.08       # ...sauf si elle a encore perdu 8 points de plus depuis la dernière alerte
+  pause_jours: 20         # pas de nouvelle alerte sur la même action pendant 20 jours...
+  aggravation: 0.10       # ...sauf si elle a encore perdu 10 points de plus depuis la dernière alerte
